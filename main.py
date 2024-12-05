@@ -13,6 +13,9 @@ users_list= mydb["users"]
 app=FastAPI()
 
 
+@app.get("/")
+def hello():
+    return "hello world"
 
 
 @app.post("/signup")
