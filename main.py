@@ -4,7 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from models.user import create_user, UserLogin
 from auth.auth import create_access_token, decode_access_token
 from auth.hash_pass import hash_password, verify_password
-from database import engine, User
+from database import engine, User, Image
+from image import upload_image
+from fastapi import File, UploadFile
+
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -32,6 +35,41 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+async def image_meta_data(file: UploadFile, user_id: int):
+    try:
+        image_data = await upload_image(file)
+        image = Image(
+            user_id=user_id,
+            filename=image_data["filename"],
+            url=image_data["url"],
+            width=image_data["width"],
+            height=image_data["height"],
+            file_size=image_data["file_size"],
+            mime_type=image_data["format"]
+        )
+        session.add(image)
+        session.commit()
+        session.refresh(image)
+        return image
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.post("/signup")
 async def signup(user: create_user):
@@ -65,3 +103,16 @@ async def update_user_me(username: str, current_user: User = Depends(get_current
     current_user.username = username
     session.commit()
     return current_user
+
+@app.post("/images")
+async def post_image(
+    file: UploadFile = File(..., description="The image file to upload"), 
+    current_user: User = Depends(get_current_user)
+):
+    image = await image_meta_data(file, current_user.id)
+    return {"message": "success", "image": image}
+
+@app.get("/images/{id}")
+async def get_image(id):
+    image = session.query(Image).filter(Image.id == id).first()
+    return image

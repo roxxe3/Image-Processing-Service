@@ -13,7 +13,7 @@ Base = declarative_base()
 class User(Base):
     __tablename__="users"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     username = Column(String)
     password = Column(String)
 
