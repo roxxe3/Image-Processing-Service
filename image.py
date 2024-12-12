@@ -58,32 +58,33 @@ async def upload_image(file: UploadFile) -> dict:
         await file.close()
 
 async def upload_transformed_image(url: str, transformation: Transformations):
-    response = requests.get(url)
-    img = Image.open(BytesIO(response.content))
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        img = Image.open(BytesIO(response.content))
 
-    # Apply transformations here
-    if transformation.resize:
-        img = img.resize((transformation.resize.width, transformation.resize.height))
-    if transformation.crop:
-        img = img.crop((transformation.crop.x, transformation.crop.y, transformation.crop.x + transformation.crop.width, transformation.crop.y + transformation.crop.height))
-    if transformation.rotate:
-        img = img.rotate(transformation.rotate)
-    if transformation.filters:
-        if transformation.filters.grayscale:
-            img = img.convert("L")
-        if transformation.filters.sepia:
-            sepia_filter = Image.open("path/to/sepia/filter.png")
-            img = Image.blend(img, sepia_filter, 0.5)
+        if transformation.resize:
+            img = img.resize((transformation.resize.width, transformation.resize.height))
+        img_byte_arr = BytesIO()
+        img.save(img_byte_arr, format=transformation.format or img.format)
+        img.show()
+        img_byte_arr.seek(0)
 
-    # Save the transformed image to a BytesIO object
-    img_byte_arr = BytesIO()
-    img.save(img_byte_arr, format=transformation.format or img.format)
-    img_byte_arr.seek(0)
-
-    # Upload the transformed image to S3
-    s3.put_object(
-        Bucket=bucket_name,
-        Key=f"transformed/{url.split('/')[-1]}",
-        Body=img_byte_arr,
-        ContentType=f"image/{transformation.format or img.format.lower()}"
-    )
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=f"transformed/{url.split('/')[-1]}",
+            Body=img_byte_arr,
+            ContentType=f"image/{transformation.format or img.format.lower()}"
+        )
+        return {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{url.split('/')[-1]}"}
+    
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching image: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing image: {str(e)}"
+        )
