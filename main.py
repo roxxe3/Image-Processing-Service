@@ -5,10 +5,9 @@ from models.user import create_user, UserLogin
 from auth.auth import create_access_token, decode_access_token
 from auth.hash_pass import hash_password, verify_password
 from database import engine, User, Image
-from image import upload_imagen, upload_transformed_image
+from image import upload_image, upload_transformed_image
 from fastapi import File, UploadFile
 from models.image import Transformations
-from process_image import process_image_from_url
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -117,7 +116,6 @@ async def post_image(
 async def get_image(id):
     image = session.query(Image).filter(Image.id == id).first()
     return image
-
 
 @app.put("/images/{id}/transform")
 async def transform_image(
