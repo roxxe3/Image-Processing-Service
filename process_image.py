@@ -15,7 +15,6 @@ async def process_image_from_url(url, width, height):
 
 
 
-process_image_from_url("https://imagesbucketpillow.s3.eu-west-3.amazonaws.com/1712076948499.jpeg", 100, 200)
 
 
     
