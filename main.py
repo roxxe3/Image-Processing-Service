@@ -92,12 +92,10 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 def hello():
     return "hello world"
 
-# Example of a protected endpoint
 @app.get("/user/me")
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-# Example of another protected endpoint
 @app.put("/user/me")
 async def update_user_me(username: str, current_user: User = Depends(get_current_user)):
     current_user.username = username
