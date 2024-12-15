@@ -69,7 +69,7 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         img.save(img_byte_arr, format=transformation.format or img.format)
         img.show()
         img_byte_arr.seek(0)
-
+        # Task : change the funtion to upload transformed image instead of replacing old one
         s3.put_object(
             Bucket=bucket_name,
             Key=f"transformed/{url.split('/')[-1]}",
