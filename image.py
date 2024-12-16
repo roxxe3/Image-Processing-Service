@@ -76,7 +76,7 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         print(url.split('/')[-1])
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
-        
+        # resize image
         if transformation.resize:
             img = img.resize((transformation.resize.width, transformation.resize.height))
 
