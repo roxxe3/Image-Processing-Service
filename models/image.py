@@ -12,8 +12,16 @@ class Crop(BaseModel):
     y: int
 
 class Filters(BaseModel):
-    grayscale: Optional[bool] = False
-    sepia: Optional[bool] = False
+    BLUR: Optional[bool] = False
+    CONTOUR: Optional[bool] = False
+    DETAIL: Optional[bool] = False
+    EDGE_ENHANCE: Optional[bool] = False
+    EDGE_ENHANCE_MORE: Optional[bool] = False
+    EMBOSS: Optional[bool] = False
+    FIND_EDGES: Optional[bool] = False
+    SHARPEN: Optional[bool] = False
+    SMOOTH: Optional[bool] = False
+    SMOOTH_MORE: Optional[bool] = False
 
 class Transformations(BaseModel):
     resize: Optional[Resize]

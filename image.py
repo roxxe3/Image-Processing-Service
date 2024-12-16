@@ -1,6 +1,7 @@
 import boto3
 from PIL import Image
 from fastapi import UploadFile, HTTPException
+from PIL import ImageFilter
 from io import BytesIO
 from botocore.exceptions import ClientError
 from models.image import Transformations
@@ -111,8 +112,29 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"]:
             output_filename = f"{filename.split('.')[0]}.{transformation.format.lower()}"
             img.save(output_filename, format=transformation.format.upper())
-        else:
+        elif transformation.format.lower() != "string":
             raise ValueError(f"Unsupported image format: {transformation.format}")
+        
+        if isinstance(transformation.filters, dict):
+            if transformation.filters.get("BLUR"):
+                img = img.filter(ImageFilter.BLUR)
+            if transformation.filters.get("CONTOUR"):
+                img = img.filter(ImageFilter.CONTOUR)
+            if transformation.filters.get("DETAIL"):
+                img = img.filter(ImageFilter.DETAIL)
+            if transformation.filters.get("EDGE_ENHANCE"):
+                img = img.filter(ImageFilter.EDGE_ENHANCE)
+            if transformation.filters.get("EDGE_ENHANCE_MORE"):
+                img = img.filter(ImageFilter.EDGE_ENHANCE_MORE)
+            if transformation.filters.get("FIND_EDGES"):
+                img = img.filter(ImageFilter.FIND_EDGES)
+            if transformation.filters.get("SHARPEN"):
+                img = img.filter(ImageFilter.SHARPEN)
+            if transformation.filters.get("SMOOTH"):
+                img = img.filter(ImageFilter.SMOOTH)
+            if transformation.filters.get("SMOOTH_MORE"):
+                img = img.filter(ImageFilter.SMOOTH_MORE)
+
 
         img_byte_arr = BytesIO()
         img.save(img_byte_arr, format=extension)
