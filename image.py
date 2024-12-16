@@ -108,13 +108,7 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         if transformation.format.upper() == "JPEG" and img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
 
-        # Save the image with the desired format
-        if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"]:
-            output_filename = f"{filename.split('.')[0]}.{transformation.format.lower()}"
-            img.save(output_filename, format=transformation.format.upper())
-        elif transformation.format.lower() != "string":
-            raise ValueError(f"Unsupported image format: {transformation.format}")
-        
+        # Apply filters
         if isinstance(transformation.filters, dict):
             if transformation.filters.get("BLUR"):
                 img = img.filter(ImageFilter.BLUR)
@@ -135,9 +129,8 @@ async def upload_transformed_image(url: str, transformation: Transformations):
             if transformation.filters.get("SMOOTH_MORE"):
                 img = img.filter(ImageFilter.SMOOTH_MORE)
 
-
         img_byte_arr = BytesIO()
-        img.save(img_byte_arr, format=extension)
+        img.save(img_byte_arr, format=image_format.upper())
         img_byte_arr.seek(0)
         s3.Bucket(bucket_name).put_object(
             Key=f"transformed/{filename.split('.')[0]}.{image_format}",
