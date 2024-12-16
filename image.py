@@ -1,5 +1,5 @@
 import boto3
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from fastapi import UploadFile, HTTPException
 from PIL import ImageFilter
 from io import BytesIO
@@ -13,6 +13,18 @@ region = "eu-west-3"
 
 # Allowed file types
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+
+def compress_image(image, quality=85):
+    img_byte_arr = BytesIO()
+    image.save(img_byte_arr, format=image.format, quality=quality)
+    img_byte_arr.seek(0)
+    return img_byte_arr
+def flip_image(image):
+    return image.transpose(Image.FLIP_TOP_BOTTOM)
+
+def mirror_image(image):
+    return image.transpose(Image.FLIP_LEFT_RIGHT)
 
 async def upload_image(file: UploadFile) -> dict:
     file_ext = file.filename.split('.')[-1].lower()
@@ -72,10 +84,12 @@ async def upload_transformed_image(url: str, transformation: Transformations):
     try:
         response = requests.get(url)
         filename = url.split('/')[-1]
-        extension = filename.split('.')[1]
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
         
+        # Use the original image format
+        image_format = img.format.lower() if img.format else 'jpeg'  # Default to 'jpeg' if format is None
+
         # Resize image
         if transformation.resize and transformation.resize.width > 0 and transformation.resize.height > 0:
             img = img.resize((transformation.resize.width, transformation.resize.height))
@@ -98,15 +112,25 @@ async def upload_transformed_image(url: str, transformation: Transformations):
             else:
                 print("Skipping crop: Invalid crop dimensions")
 
-        image_format = transformation.format.lower() if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"] else img.format.lower()
-
         # Rotate image
         if transformation.rotate:
             img = img.rotate(transformation.rotate)
 
-        # Convert to JPEG-compatible mode if needed
-        if transformation.format.upper() == "JPEG" and img.mode not in ("RGB", "L"):
-            img = img.convert("RGB")
+        # Flip image
+        if transformation.flip:
+            img = flip_image(img)
+
+        # Mirror image
+        if transformation.mirror:
+            img = mirror_image(img)
+
+        # Add watermark
+        if transformation.watermark and transformation.watermark.text:
+            draw = ImageDraw.Draw(img)
+            font = ImageFont.load_default()
+            position = tuple(transformation.watermark.position) if transformation.watermark.position else (10, 10)
+            draw.text(position, transformation.watermark.text, (255, 255, 255), font=font)
+
 
         # Apply filters
         if isinstance(transformation.filters, dict):

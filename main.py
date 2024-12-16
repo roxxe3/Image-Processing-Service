@@ -115,6 +115,12 @@ async def get_image(id):
     image = session.query(Image).filter(Image.id == id).first()
     return image
 
+@app.get("/images")
+async def list_images(page: int = 1, limit: int = 10, current_user: User = Depends(get_current_user)):
+    offset = (page - 1) * limit
+    images = session.query(Image).filter(Image.user_id == current_user.id).offset(offset).limit(limit).all()
+    return images
+
 @app.put("/images/{id}/transform")
 async def transform_image(
     id: str,
