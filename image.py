@@ -1,4 +1,5 @@
 import boto3
+import os
 from PIL import Image, ImageDraw, ImageFont
 from fastapi import UploadFile, HTTPException
 from PIL import ImageFilter
@@ -8,8 +9,8 @@ from models.image import Transformations
 import requests
 
 s3 = boto3.resource('s3')
-bucket_name = 'imagesbucketpillow'
-region = "eu-west-3"
+bucket_name = os.getenv('BUCKET_NAME', 'default_bucket_name')
+region = os.getenv('REGION', 'default_region')
 
 # Allowed file types
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
