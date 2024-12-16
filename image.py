@@ -58,6 +58,16 @@ async def upload_image(file: UploadFile) -> dict:
         await file.close()
 
 async def upload_transformed_image(url: str, transformation: Transformations):
+    """
+    Fetches an image from a given URL, applies specified transformations, and uploads the transformed image to an S3 bucket.
+    Args:
+        url (str): The URL of the image to be fetched.
+        transformation (Transformations): An object containing the transformations to be applied to the image.
+    Returns:
+        dict: A dictionary containing the URL of the uploaded transformed image.
+    Raises:
+        HTTPException: If there is an error fetching the image or processing the image.
+    """
     try:
         response = requests.get(url)
         filename = url.split('/')[-1]
