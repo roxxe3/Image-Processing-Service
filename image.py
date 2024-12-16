@@ -72,26 +72,57 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         response = requests.get(url)
         filename = url.split('/')[-1]
         extension = filename.split('.')[1]
-        print(f"extansion = {extension}")
-        print(url.split('/')[-1])
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
-        # resize image
-        if transformation.resize:
+        
+        # Resize image
+        if transformation.resize and transformation.resize.width > 0 and transformation.resize.height > 0:
             img = img.resize((transformation.resize.width, transformation.resize.height))
 
+        # Crop image
+        if transformation.crop and transformation.crop.width > 0 and transformation.crop.height > 0:
+            left = transformation.crop.x
+            upper = transformation.crop.y
+            right = left + transformation.crop.width
+            lower = upper + transformation.crop.height
+
+            # Ensure crop dimensions are within image bounds
+            left = max(0, left)
+            upper = max(0, upper)
+            right = min(img.width, right)
+            lower = min(img.height, lower)
+
+            if right > left and lower > upper:  # Valid crop area
+                img = img.crop((left, upper, right, lower))
+            else:
+                print("Skipping crop: Invalid crop dimensions")
+
+        image_format = transformation.format.lower() if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"] else img.format.lower()
+
+        # Rotate image
         if transformation.rotate:
             img = img.rotate(transformation.rotate)
+
+        # Convert to JPEG-compatible mode if needed
+        if transformation.format.upper() == "JPEG" and img.mode not in ("RGB", "L"):
+            img = img.convert("RGB")
+
+        # Save the image with the desired format
+        if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"]:
+            output_filename = f"{filename.split('.')[0]}.{transformation.format.lower()}"
+            img.save(output_filename, format=transformation.format.upper())
+        else:
+            raise ValueError(f"Unsupported image format: {transformation.format}")
 
         img_byte_arr = BytesIO()
         img.save(img_byte_arr, format=extension)
         img_byte_arr.seek(0)
         s3.Bucket(bucket_name).put_object(
-            Key=f"transformed/{filename}",
+            Key=f"transformed/{filename.split('.')[0]}.{image_format}",
             Body=img_byte_arr,
-            ContentType=f"image/{extension}"
+            ContentType=f"image/{image_format}"
         )
-        return {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{url.split('/')[-1]}"}
+        return {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{filename.split('.')[0]}.{image_format}"}
     
     except requests.exceptions.RequestException as e:
         raise HTTPException(
