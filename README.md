@@ -129,13 +129,24 @@ This project is an Image Processing Service that allows users to upload, transfo
 
    Follow the prompts to set up your AWS credentials and region.
 
-5. **Run the application**
+5. **Set up environment variables**
+
+   Create a `.env` file in the root directory and add the following variables:
+
+   ```properties
+   secret = YOUR_SECRET_KEY
+   algorithm = HS256
+   BUCKET_NAME = YOUR_BUCKET_NAME
+   REGION = YOUR_REGION
+   ```
+
+6. **Run the application**
 
    ```bash
    uvicorn main:app --reload
    ```
 
-6. **Access the API documentation**
+7. **Access the API documentation**
    Open your browser and go to `http://127.0.0.1:8000/docs` to see the interactive API documentation.
 
 ## Technologies Used
