@@ -16,6 +16,16 @@ app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def add_user(username, password):
+    """
+    Add a new user to the database with a hashed password.
+
+    Args:
+        username (str): The username of the new user.
+        password (str): The password of the new user.
+
+    Returns:
+        bool: True if the user was added successfully.
+    """
     new_user = User(username=username, password=hash_password(password))
     session.add(new_user)
     session.commit()
@@ -158,3 +168,9 @@ async def transform_image(
             status_code=500,
             detail=f"Failed to transform image: {str(e)}"
         )
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to the Image Processing Service API. Use this API to upload, transform, and retrieve images."
+    }
