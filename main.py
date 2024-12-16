@@ -152,12 +152,8 @@ async def transform_image(
         result = await upload_transformed_image(image.url, transformation)
         import json
         
-        if image.transformations:
-            current_transforms = json.loads(image.transformations)
-            current_transforms.append(transformation.dict())
-            image.transformations = json.dumps(current_transforms)
-        else:
-            image.transformations = json.dumps([transformation.dict()])
+        # Replace the existing transformations with the new ones
+        image.transformations = json.dumps([transformation.dict()])
         
         session.commit()
         return {"message": "Image transformed successfully", "result": result}
