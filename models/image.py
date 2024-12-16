@@ -21,6 +21,9 @@ class Filters(BaseModel):
     SHARPEN: Optional[bool] = False
     SMOOTH: Optional[bool] = False
     SMOOTH_MORE: Optional[bool] = False
+    # Remove GRAYSCALE and SEPIA options
+    # GRAYSCALE:  Optional[bool] = False
+    # SEPIA: Optional[bool] = False
 
 class Watermark(BaseModel):
     text: str
