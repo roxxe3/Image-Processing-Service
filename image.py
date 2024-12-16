@@ -5,17 +5,6 @@ from io import BytesIO
 from botocore.exceptions import ClientError
 from models.image import Transformations
 import requests
-import hashlib
-import aioredis
-import json
-
-
-def generate_cache_key(url: str, transformation: Transformations) -> str:
-    # Generate a unique cache key based on the image URL and transformation parameters
-    key = f"{url}-{transformation.json()}"
-    return hashlib.md5(key.encode()).hexdigest()
-
-redis = aioredis.from_url("redis://localhost")
 
 s3 = boto3.resource('s3')
 bucket_name = 'imagesbucketpillow'
@@ -79,17 +68,10 @@ async def upload_transformed_image(url: str, transformation: Transformations):
     Raises:
         HTTPException: If there is an error fetching the image or processing the image.
     """
-    cache_key = generate_cache_key(url, transformation)
-    
-    # Check if the transformed image is already in the cache
-    cached_result = await redis.get(cache_key)
-    if cached_result:
-        return json.loads(cached_result)
-
     try:
         response = requests.get(url)
         filename = url.split('/')[-1]
-        extension = filename.split('.')[-1] if '.' in filename else None
+        extension = filename.split('.')[1]
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
         
@@ -125,22 +107,22 @@ async def upload_transformed_image(url: str, transformation: Transformations):
         if transformation.format.upper() == "JPEG" and img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
 
-        # Save the image with the desired format to a byte array
-        img_byte_arr = BytesIO()
-        img.save(img_byte_arr, format=image_format.upper())
-        img_byte_arr.seek(0)
+        # Save the image with the desired format
+        if transformation.format.lower() in ["jpeg", "png", "bmp", "gif"]:
+            output_filename = f"{filename.split('.')[0]}.{transformation.format.lower()}"
+            img.save(output_filename, format=transformation.format.upper())
+        else:
+            raise ValueError(f"Unsupported image format: {transformation.format}")
 
-        # Upload the image to S3
+        img_byte_arr = BytesIO()
+        img.save(img_byte_arr, format=extension)
+        img_byte_arr.seek(0)
         s3.Bucket(bucket_name).put_object(
             Key=f"transformed/{filename.split('.')[0]}.{image_format}",
             Body=img_byte_arr,
             ContentType=f"image/{image_format}"
         )
-        result = {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{filename.split('.')[0]}.{image_format}"}
-        
-        # Store the transformed image in the cache
-        await redis.set(cache_key, json.dumps(result))
-        return result
+        return {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{filename.split('.')[0]}.{image_format}"}
     
     except requests.exceptions.RequestException as e:
         raise HTTPException(
