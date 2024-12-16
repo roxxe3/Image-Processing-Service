@@ -60,21 +60,24 @@ async def upload_image(file: UploadFile) -> dict:
 async def upload_transformed_image(url: str, transformation: Transformations):
     try:
         response = requests.get(url)
+        filename = url.split('/')[-1]
+        extension = filename.split('.')[1]
+        print(f"extansion = {extension}")
+        print(url.split('/')[-1])
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
 
         if transformation.resize:
             img = img.resize((transformation.resize.width, transformation.resize.height))
         img_byte_arr = BytesIO()
-        img.save(img_byte_arr, format=transformation.format or img.format)
+        img.save(img_byte_arr, format=extension)
         img.show()
         img_byte_arr.seek(0)
         # Task : change the funtion to upload transformed image instead of replacing old one
-        s3.put_object(
-            Bucket=bucket_name,
-            Key=f"transformed/{url.split('/')[-1]}",
+        s3.Bucket(bucket_name).put_object(
+            Key=f"transformed/{filename}",
             Body=img_byte_arr,
-            ContentType=f"image/{transformation.format or img.format.lower()}"
+            ContentType=f"image/{extension}"
         )
         return {"url": f"https://{bucket_name}.s3.{region}.amazonaws.com/transformed/{url.split('/')[-1]}"}
     
